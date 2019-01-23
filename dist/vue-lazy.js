@@ -1,5 +1,5 @@
 /*!
- * vue-lazy v1.0.1
+ * vue-lazy v1.0.2
  * (c) 2019 Nuno Balbona
  * Released under the MIT License.
  */
@@ -107,35 +107,12 @@ function scrollParent (el) {
   return window
 }
 
-var observer$1 = hasIntersectionObserver ? getObserver() : false;
-
-function getObserver () {
-  return new IntersectionObserver(function (entries, observer) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        componentAppeared(entry.target);
-      }
-    });
-  })
-}
-
-var observe$1 = function (data) {
-  observer$1.observe(data.el);
-};
-var unobserve$1 = function (data) {
-  observer$1.unobserve(data.el);
-};
-
-
-var intersectionObserver = Object.freeze({
-	observe: observe$1,
-	unobserve: unobserve$1
-});
-
 // Badly implemented Map to avoid ECMAScript 5
 // Operations are O(n) instead of O(1)
 
 function SimpleMap () {
+  if ('Map' in window) { return new Map() } // Use Map if available
+
   var __mapKeysData__ = [];
   var __mapValuesData__ = [];
   this.get = function (key) {
@@ -163,18 +140,48 @@ function SimpleMap () {
     __mapKeysData__.splice(index, 1);
     __mapValuesData__.splice(index, 1);
   };
+  return this
 }
+
+var observer$1 = hasIntersectionObserver ? getObserver() : false;
+var callbackMap = new SimpleMap();
+
+function getObserver () {
+  return new IntersectionObserver(function (entries, observer) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        callbackMap.get(entry.target)();
+      }
+    });
+  })
+}
+
+var observe$1 = function (el, fire) {
+  callbackMap.set(el, fire);
+  observer$1.observe(el);
+};
+var unobserve$1 = function (el) {
+  callbackMap.delete(el);
+  observer$1.unobserve(el);
+};
+
+
+var intersectionObserver = Object.freeze({
+	observe: observe$1,
+	unobserve: unobserve$1
+});
 
 var PRELOAD = 1.3;
 var THROTTLE_WAIT = 200;
 var DEFAULT_EVENTS = ['scroll', 'wheel', 'mousewheel', 'resize', 'animationend', 'transitionend', 'touchmove'];
 var ParentsList = new SimpleMap();
+var callbackMap$1 = new SimpleMap();
 
 function _eventFired (container) {
   ParentsList.get(container)
     .filter(function (el) { return checkInView(el); })
     .forEach(function (el) {
-      componentAppeared(el);
+      callbackMap$1.get(el)();
     });
 }
 
@@ -218,11 +225,8 @@ function _removeListener (el, evt, callback) {
   el.removeEventListener(evt, callback);
 }
 
-var observe$2 = function (ref) {
-  var el = ref.el;
-  var binding = ref.binding;
-  var vnode = ref.vnode;
-
+var observe$2 = function (el, fire) {
+  callbackMap$1.set(el, fire);
   setTimeout(function () {
     var containers = [scrollParent(el)];
     if (containers[0] !== window) { containers.push(window); }
@@ -237,11 +241,8 @@ var observe$2 = function (ref) {
   }, 10);
 };
 
-var unobserve$2 = function (ref) {
-  var el = ref.el;
-  var binding = ref.binding;
-  var vnode = ref.vnode;
-
+var unobserve$2 = function (el) {
+  callbackMap$1.delete(el);
   var containers = [scrollParent(el)];
   if (containers[0] !== window) { containers.push(window); }
 
@@ -257,22 +258,29 @@ var customObserver = Object.freeze({
 });
 
 var observer = hasIntersectionObserver ? intersectionObserver : customObserver;
-var observe$$1 = observer.observe;
-var unobserve$$1 = observer.unobserve;
 
-var dataSet = new SimpleMap();
+function observe$$1 () {
+  observer.observe.apply(observer, arguments);
+}
+function unobserve$$1 () {
+  observer.unobserve.apply(observer, arguments);
+}
 
-var plugin = {
-  install: function (Vue, options) {
-    if ( options === void 0 ) options = {};
+function setPreferedObserver (name) {
+  if (name === 'custom') { observer = customObserver; }
+  else if (name === 'intersection') { observer = intersectionObserver; }
+  else { throw new Error('[vue-lazy] Unknown observer name') }
+}
 
-    Vue.directive('lazy', {
-      bind: basicHanding,
-      update: basicHanding,
-      componentUpdated: basicHanding,
-      unbind: unbind
-    });
-  }
+var dataMap = new SimpleMap();
+
+var lazy = function (Vue, options) {
+  Vue.directive('lazy', {
+    bind: basicHanding,
+    update: basicHanding,
+    componentUpdated: basicHanding,
+    unbind: unbind
+  });
 };
 
 /*
@@ -284,9 +292,8 @@ var plugin = {
 */
 
 function unbind (el, binding, vnode) {
-  var data = dataSet.get(el);
-  dataSet.delete(el);
-  unobserve$$1(data);
+  dataMap.delete(el);
+  unobserve$$1(el);
 }
 
 /*
@@ -297,65 +304,66 @@ function unbind (el, binding, vnode) {
 * @return
 */
 function basicHanding (el, binding, vnode) {
-  var data = {
-    el: el,
-    vnode: vnode,
-    binding: binding,
+  var customData = {
+    bindType: binding.arg,
     src: null
   };
-  updateComponentData(data);
-  dataSet.set(el, data);
-  data.src = binding.value;
-  observe$$1(data);
-}
-
-function componentAppeared (el) {
-  var data = dataSet.get(el);
-  if (!data) {
-    console.warn(("[vue-lazy] Image had no data: " + el));
-    return false
-  }
-  unobserve$$1(data);
-
-  loadImageAsync(data.src, function (ref) {
-    var src = ref.src;
-
-    // Success
-    data.src = src;
-    updateComponentData(data);
-  }, function (error) {
-    // Error
-    data.src = error.src;
-    updateComponentData(data);
+  updateComponentData(el, customData);
+  customData.src = binding.value;
+  dataMap.set(el, customData);
+  observe$$1(el, function () {
+    componentAppeared(el);
   });
 }
 
-function updateComponentData (ref) {
-  var el = ref.el;
-  var src = ref.src;
-  var binding = ref.binding;
+function componentAppeared (el) {
+  var customData = dataMap.get(el);
+  if (!customData) {
+    console.warn(("[vue-lazy] Image had no data: " + el));
+    return false
+  }
+  unobserve$$1(el);
 
+  loadImageAsync(customData.src, function (ref) {
+    var src = ref.src;
+
+    // Success
+    customData.src = src;
+    updateComponentData(el, customData);
+  }, function (error) {
+    // Error
+    customData.src = error.src;
+    updateComponentData(el, customData);
+  });
+}
+
+function updateComponentData (el, customData) {
   if (!el) { return false }
-  if (!src) { src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; } // Transparent Pixel
+  var src = customData.src || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // Transparent Pixel
 
-  if (binding.arg) {
-    el.style[binding.arg] = 'url("' + src + '")';
+  if (customData.bindType) {
+    el.style[customData.bindType] = 'url("' + src + '")';
   } else if (el.getAttribute('src') !== src) {
     el.setAttribute('src', src);
   }
 }
 
+var index = {
+  install: function (Vue, options) {
+    if ( options === void 0 ) options = {};
 
-var plugin$1 = Object.freeze({
-	default: plugin,
-	componentAppeared: componentAppeared
-});
+    // Set defaults
+    if (options.preferedObserver === undefined) { options.preferedObserver = false; }
+    // Execute options
+    if (options.preferedObserver) {
+      setPreferedObserver(options.preferedObserver);
+    }
 
-var require$$0 = ( plugin$1 && plugin ) || plugin$1;
+    lazy(Vue, options);
+  }
+};
 
-var src = require$$0;
-
-exports['default'] = src;
+exports['default'] = index;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 

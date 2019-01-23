@@ -1,4 +1,3 @@
-import { componentAppeared } from './plugin'
 import { scrollParent, throttle } from './utils'
 import SimpleMap from './SimpleMap'
 
@@ -6,12 +5,13 @@ const PRELOAD = 1.3
 const THROTTLE_WAIT = 200
 const DEFAULT_EVENTS = ['scroll', 'wheel', 'mousewheel', 'resize', 'animationend', 'transitionend', 'touchmove']
 const ParentsList = new SimpleMap()
+const callbackMap = new SimpleMap()
 
 function _eventFired (container) {
   ParentsList.get(container)
     .filter(el => checkInView(el))
     .forEach(el => {
-      componentAppeared(el)
+      callbackMap.get(el)()
     })
 }
 
@@ -55,7 +55,8 @@ function _removeListener (el, evt, callback) {
   el.removeEventListener(evt, callback)
 }
 
-export const observe = ({ el, binding, vnode }) => {
+export const observe = (el, fire) => {
+  callbackMap.set(el, fire)
   setTimeout(() => {
     const containers = [scrollParent(el)]
     if (containers[0] !== window) containers.push(window)
@@ -70,7 +71,8 @@ export const observe = ({ el, binding, vnode }) => {
   }, 10)
 }
 
-export const unobserve = ({ el, binding, vnode }) => {
+export const unobserve = (el) => {
+  callbackMap.delete(el)
   const containers = [scrollParent(el)]
   if (containers[0] !== window) containers.push(window)
 
