@@ -10,7 +10,8 @@ const uglify = require('uglify-js')
 const CleanCSS = require('clean-css')
 
 // Make sure dist dir exists
-mkdirp('dist')
+const buildDir = process.env.DIST || 'dist'
+mkdirp(buildDir)
 
 const {
   logError,
@@ -43,8 +44,8 @@ function rollupBundle ({ env }) {
               // TODO add it back if we extract all components to individual js
               // files too
               // css.forEach(writeCss)
-              write(`dist/${name}.css`, result)
-              write(`dist/${name}.min.css`, new CleanCSS().minify(result).styles)
+              write(`${buildDir}/${name}.css`, result)
+              write(`${buildDir}/${name}.min.css`, new CleanCSS().minify(result).styles)
             }).catch(logError)
           }
         }
@@ -81,9 +82,9 @@ function createBundle ({ name, env, format }) {
           ascii_only: true // eslint-disable-line camelcase
         }
       }).code
-      return write(`dist/${name}.js`, minified)
+      return write(`${buildDir}/${name}.js`, minified)
     } else {
-      return write(`dist/${name}.js`, code)
+      return write(`${buildDir}/${name}.js`, code)
     }
   }).catch(logError)
 }

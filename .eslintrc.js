@@ -4,6 +4,9 @@ module.exports = {
   parserOptions: {
     sourceType: 'module'
   },
+  env: {
+    'browser': true
+  },
   extends: 'vue',
   // add your custom rules here
   'rules': {
