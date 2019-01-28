@@ -1,6 +1,6 @@
-# VueLazy
+# vue-lazy
 
-[![npm](https://img.shields.io/npm/v/vue-lazy.svg)](https://www.npmjs.com/package/vue-lazy) [![vue2](https://img.shields.io/badge/vue-2.x-brightgreen.svg)](https://vuejs.org/)
+[![npm](https://img.shields.io/npm/v/vue-lazy.svg)](https://www.npmjs.com/package/vue-lazy) [![vue2](https://img.shields.io/badge/vue-2.x-brightgreen.svg)](https://vuejs.org/) [![](https://img.shields.io/github/size/niciusb/vue-lazy/dist/VueLazy.umd.min.js.svg)](https://github.com/NiciusB/vue-lazy/blob/master/dist/VueLazy.umd.min.js)
 
 > A Vue.js plugin for lazy loading images
 
@@ -17,10 +17,12 @@ npm install --save vue-lazy
 ```js
 import Vue from 'vue'
 import VueLazy from 'vue-lazy'
-// You need a specific loader for CSS files like https://github.com/webpack/css-loader
-import 'vue-lazy/dist/vue-lazy.css'
 
 Vue.use(VueLazy)
+```
+
+```html
+<img v-lazy="https://example.com/image.png" />
 ```
 
 ### Browser
@@ -28,51 +30,47 @@ Vue.use(VueLazy)
 ```html
 <!-- Include after Vue -->
 <!-- Local files -->
-<link rel="stylesheet" href="vue-lazy/dist/vue-lazy.css"></link>
 <script src="vue-lazy/dist/vue-lazy.js"></script>
 
 <!-- From CDN -->
-<link rel="stylesheet" href="https://unpkg.com/vue-lazy/dist/vue-lazy.css"></link>
 <script src="https://unpkg.com/vue-lazy"></script>
+```
+```js
+Vue.use(VueLazy.default)
+```
+```html
+<!-- Usage, after installing the plugin -->
+<img v-lazy="https://example.com/image.png" />
 ```
 
 ## Development
-
-### Launch visual tests
-
-```bash
-npm run dev
+```
+git clone git@github.com:NiciusB/vue-lazy.git
+npm install
 ```
 
-### Launch Karma with coverage
-
-```bash
-npm run dev:coverage
+### Compiles and minifies for production
 ```
-
-### Build
-
-Bundle the js and css of to the `dist` folder:
-
-```bash
 npm run build
 ```
 
-
-## Publishing
-
-The `prepublish` hook will ensure dist files are created before publishing. This
-way you don't need to commit them in your repository.
-
-```bash
-# Bump the version first
-# It'll also commit it and create a tag
-npm version
-# Push the bumped package and tags
-git push --follow-tags
-# Ship it 🚀
-npm publish
+### Run your tests
 ```
+npm run test
+```
+
+### Lints and fixes files
+```
+npm run lint
+```
+
+### Run your unit tests
+```
+npm run test:unit
+```
+
+### Customize configuration
+See [Configuration Reference](https://cli.vuejs.org/config/).
 
 ## License
 

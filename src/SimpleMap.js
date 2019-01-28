@@ -2,7 +2,7 @@
 // Operations are O(n) instead of O(1)
 
 export default function SimpleMap () {
-  if ('Map' in window) return new Map() // Use Map if available
+  if (typeof Map !== 'undefined') return new Map() // Use Map if available
 
   const __mapKeysData__ = []
   const __mapValuesData__ = []
@@ -31,5 +31,4 @@ export default function SimpleMap () {
     __mapKeysData__.splice(index, 1)
     __mapValuesData__.splice(index, 1)
   }
-  return this
 }

@@ -1,8 +1,9 @@
 export const hasIntersectionObserver = checkIntersectionObserver()
 
+export const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
 function checkIntersectionObserver () {
-  if ('IntersectionObserver' in window &&
-    'IntersectionObserverEntry' in window &&
+  if (typeof window !== 'undefined' && 'IntersectionObserverEntry' in window &&
     'intersectionRect' in window.IntersectionObserverEntry.prototype) {
     // Minimal polyfill for Edge 15's lack of `isIntersecting`
     // See: https://github.com/w3c/IntersectionObserver/issues/211

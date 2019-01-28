@@ -1,5 +1,5 @@
 import { observe, unobserve } from './observer'
-import { loadImageAsync } from './utils'
+import { loadImageAsync, transparentPixel } from './utils'
 import SimpleMap from './SimpleMap'
 
 const dataMap = new SimpleMap()
@@ -67,7 +67,7 @@ function componentAppeared (el) {
 
 function updateComponentData (el, customData) {
   if (!el) return false
-  const src = customData.src || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' // Transparent Pixel
+  const src = customData.src || transparentPixel
 
   if (customData.bindType) {
     el.style[customData.bindType] = 'url("' + src + '")'
